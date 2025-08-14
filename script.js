@@ -176,15 +176,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (efficiency < 1.0) score += 10;
                 }
                 
-                // ▼▼▼ 新規追加: 弱い布での範囲攻撃にペナルティ ▼▼▼
                 if (state.clothCondition === 'weak') {
                     const isRangeAttack = ['yoko', 'taki', 'tasuki', 'gyaku-tasuki', 'suihei', 'otaki'].includes(skill.key);
                     if (isRangeAttack) {
-                        score += 30; // 弱い布で範囲攻撃をするのは悪手なので、大きなペナルティ
+                        score += 30; 
                     }
                 }
-                // ▲▲▲ 新規追加ここまで ▲▲▲
 
+                // ▼▼▼ 改善点: 「弱い布」での高倍率特技に、さらに大きなペナルティを追加 ▼▼▼
                 switch (skill.key) {
                     case 'nerai':
                         const targetValue = state.gridValues[target.indices[0]];
@@ -192,8 +191,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (state.clothCondition === 'weak') score += 40;
                         if (state.currentConcentration > state.maxConcentration * 0.6) score += 20;
                         break;
+                    case 'double': // 2倍ぬいも評価対象に
                     case 'triple':
-                        if (state.gridValues[target.indices[0]] < 45) score += 30;
+                        // 「弱い」布で使うのは最悪手なので、極めて大きなペナルティ
+                        if (state.clothCondition === 'weak') {
+                            score += 50;
+                        }
+                        // 威力が過剰な場合もペナルティ
+                        if (state.gridValues[target.indices[0]] < (skill.key === 'triple' ? 45 : 30)) {
+                             score += 20;
+                        }
                         break;
                     case 'kagen':
                         if (state.gridValues[target.indices[0]] < 15) score -= 5;
