@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DQ10 さいほう職人計算ツール (改善版)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h1>DQ10 さいほう職人計算ツール (改善版)</h1>
+    <p>原始獣のコート（体上）専用。状態の自動保存＆リセット機能付き。</p>
+
+    <div id="setup-area">
+        <h2>初期設定</h2>
+        <div class="setup-item">
+            <label for="player-level">職人レベル:</label>
+            <input type="number" id="player-level" value="80" min="1" max="80">
+        </div>
+        <div class="setup-item">
+            <label for="sewing-needle">さいほう針:</label>
+            <select id="sewing-needle">
+                <option value="copper">銅のさいほう針</option>
+                <option value="iron">鉄のさいほう針</option>
+                <option value="silver">銀のさいほう針</option>
+                <option value="platinum">プラチナさいほう針</option>
+                <option value="super">超さいほう針</option>
+                <option value="miracle" selected>奇跡のさいほう針</option>
+                <option value="light">光のさいほう針</option>
+            </select>
+        </div>
+        <div class="setup-item">
+            <label for="needle-stars">針の星(★)の数:</label>
+            <select id="needle-stars">
+                <option value="0">★0</option>
+                <option value="1">★1</option>
+                <option value="2">★2</option>
+                <option value="3" selected>★3</option>
+            </select>
+        </div>
+        <button id="start-button">計算開始</button>
+    </div>
+
+    <div id="main-tool" class="hidden">
+        <div class="controls-area">
+             <button id="calculate-next-button">次の手を計算</button>
+             <button id="reset-button">全てリセット</button>
+        </div>
+
+        <div id="status-area">
+            <h3>ステータス</h3>
+            <div class="status-grid">
+                <div><label>集中力:</label> <input type="number" id="current-concentration" class="status-input"> / <span id="max-concentration"></span></div>
+                <div><label>ターン:</label> <input type="number" id="current-turn" value="1" min="1" class="status-input"></div>
+                <div><label>布の状態:</label>
+                    <select id="cloth-condition">
+                        <option value="normal">ふつう</option>
+                        <option value="weak">弱い</option>
+                        <option value="strong">強い</option>
+                        <option value="strongest">最強</option>
+                    </select>
+                </div>
+                 <div><label>基本会心率:</label> <span id="base-crit-rate"></span>%</div>
+            </div>
+             <div id="regeneration-notice"></div>
+        </div>
+
+        <div id="sewing-grid-area">
+            <h3>盤面</h3>
+            <div id="sewing-grid">
+                </div>
+        </div>
+
+        <div id="suggestion-area">
+            <h3>おすすめの行動</h3>
+            <div id="suggestion-text">
+                設定を入力して「計算開始」を押してください。
+            </div>
+        </div>
+
+        <div id="crit-tracker-area">
+            <h3>ねらいぬい会心トラッカー</h3>
+            <p>
+                ねらいぬい回数: <span id="nerai-attempts">0</span>回 /
+                会心成功回数: <span id="nerai-successes">0</span>回
+            </p>
+            <p>実測会心率: <span id="nerai-actual-rate">0.0</span>%</p>
+            <button id="nerai-attempt-button">+1 回試行</button>
+            <button id="nerai-success-button">+1 回成功</button>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

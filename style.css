@@ -1,0 +1,158 @@
+body {
+    font-family: 'Helvetica Neue', 'Arial', 'Hiragino Sans', 'Meiryo', sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+    line-height: 1.6;
+    margin: 20px;
+}
+
+h1, h2, h3 {
+    color: #4a4a4a;
+    border-bottom: 2px solid #6c5ce7;
+    padding-bottom: 5px;
+}
+
+#setup-area, #main-tool {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.setup-item {
+    margin-bottom: 15px;
+}
+
+label {
+    margin-right: 10px;
+    font-weight: bold;
+}
+
+input[type="number"], select {
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    min-width: 150px;
+}
+
+.status-input {
+    width: 60px;
+}
+
+button {
+    background-color: #6c5ce7;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+    margin-right: 10px;
+}
+
+button:hover {
+    background-color: #5849c4;
+}
+
+.hidden {
+    display: none;
+}
+
+.controls-area {
+    margin-bottom: 20px;
+}
+
+#calculate-next-button {
+    background-color: #28a745;
+}
+#calculate-next-button:hover {
+    background-color: #218838;
+}
+
+#reset-button {
+    background-color: #dc3545;
+}
+#reset-button:hover {
+    background-color: #c82333;
+}
+
+
+#status-area .status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+#regeneration-notice {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #e0f7fa;
+    color: #00796b;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+#sewing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 10px;
+    margin-top: 15px;
+    max-width: 400px;
+}
+
+.grid-cell {
+    width: 100%;
+    height: 80px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #e9ecef;
+    border-radius: 5px;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.grid-cell input {
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    border: none;
+    background: transparent;
+    color: #333;
+}
+
+.grid-cell input:focus {
+    outline: 2px solid #6c5ce7;
+    background-color: #fff;
+}
+
+#suggestion-area {
+    background-color: #fff3e0;
+    border: 1px solid #ffcc80;
+    padding: 15px;
+    border-radius: 5px;
+    margin-top: 20px;
+}
+
+#suggestion-text {
+    font-size: 18px;
+    font-weight: bold;
+    color: #e65100;
+}
+
+#crit-tracker-area {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #ede7f6;
+    border-radius: 5px;
+}
+#crit-tracker-area button {
+    font-size: 12px;
+    padding: 5px 10px;
+    margin-right: 5px;
+}
