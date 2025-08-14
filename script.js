@@ -2,9 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- データ定義 ---
     const CONCENTRATION_LEVELS = [0, 50, 51, 54, 55, 58, 61, 62, 65, 68, 68, 71, 74, 74, 77, 79, 82, 82, 85, 88, 88, 91, 94, 94, 97, 100, 100, 103, 105, 108, 108, 111, 112, 112, 114, 118, 121, 122, 122, 124, 128, 131, 133, 136, 138, 138, 141, 141, 143, 146, 148, 151, 151, 153, 156, 158, 161, 161, 163, 166, 168, 170, 170, 172, 174, 176, 179, 181, 183, 185, 187, 188, 190, 192, 194, 196, 196, 196, 196, 196, 196];
     const NEEDLE_DATA = { copper: { conc: 0, crit: [0.010, 0.011, 0.012, 0.020] }, iron: { conc: 10, crit: [0.015, 0.016, 0.017, 0.025] }, silver: { conc: 15, crit: [0.020, 0.021, 0.022, 0.030] }, platinum: { conc: 25, crit: [0.025, 0.026, 0.027, 0.035] }, super: { conc: 35, crit: [0.030, 0.031, 0.032, 0.040] }, miracle: { conc: 50, crit: [0.033, 0.034, 0.035, 0.043] }, light: { conc: 45, crit: [0.036, 0.037, 0.038, 0.046] } };
-    // ▼▼▼ 変更点: スキルデータに 'key' を追加 ▼▼▼
     const SKILLS = { 'kagen': { key: 'kagen', name: 'かげんぬい', cost: 10, level: 3 }, 'normal': { key: 'normal', name: '普通に縫う', cost: 5, level: 1 }, 'double': { key: 'double', name: '2倍ぬい', cost: 9, level: 13 }, 'triple': { key: 'triple', name: '3倍縫い', cost: 12, level: 33 }, 'nerai': { key: 'nerai', name: 'ねらいぬい', cost: 16, level: 23 }, 'yoko': { key: 'yoko', name: 'ヨコぬい', cost: 8, level: 2 }, 'taki': { key: 'taki', name: '滝のぼり', cost: 8, level: 5 }, 'tasuki': { key: 'tasuki', name: 'たすきぬい', cost: 7, level: 7 }, 'gyaku-tasuki': { key: 'gyaku-tasuki', name: '逆たすきぬい', cost: 7, level: 25 }, 'suihei': { key: 'suihei', name: '水平ぬい', cost: 10, level: 15 }, 'otaki': { key: 'otaki', name: '大滝のぼり', cost: 10, level: 19 }, };
-    // ▼▼▼ 変更点: 基準値をより正確な値に修正 ▼▼▼
     const SEWING_VALUES = { normal: { kagen: 7.5, normal: 15 }, weak: { kagen: 3.5, normal: 7 }, strong: { kagen: 11, normal: 22 }, strongest: { kagen: 15, normal: 30 } };
     const INITIAL_GRID = [95, 40, 95, 60, 60, 60, 75, 40, 75];
     const CELL_NAMES = ["上段左", "上段中", "上段右", "中段左", "中段中", "中段右", "下段左", "下段中", "下段右"];
@@ -110,12 +108,10 @@ document.addEventListener('DOMContentLoaded', () => {
         updateRegenerationNotice();
     };
     
-    // ▼▼▼ 改善点: 期待値計算ロジックを独立した関数に ▼▼▼
     const calculateExpectedOutcome = (skillKey, indices) => {
         const tempGrid = [...state.gridValues];
         let totalReduction = 0;
 
-        // 範囲攻撃で、既に0以下のマスをターゲットにしている場合は無効
         if (indices.some(index => tempGrid[index] <= 0)) {
             return { expectedGrid: null, expectedReduction: 0 };
         }
@@ -138,15 +134,15 @@ document.addEventListener('DOMContentLoaded', () => {
         indices.forEach(index => {
             const originalValue = tempGrid[index];
             if (skillKey === 'nerai') {
-                const critRate = state.baseCritRate + 0.20; // ねらいぬいの会心率上昇を+20%と仮定
+                const critRate = state.baseCritRate + 0.20;
                 const normalVal = originalValue - sewPower;
-                const critVal = 0; // 会心すれば0
+                const critVal = 0;
                 const expectedValue = (normalVal * (1 - critRate)) + (critVal * critRate);
                 
                 totalReduction += originalValue - expectedValue;
                 tempGrid[index] = expectedValue;
             } else {
-                const reduction = Math.min(originalValue, sewPower); // 0を越えて減らないように計算
+                const reduction = Math.min(originalValue, sewPower);
                 tempGrid[index] -= sewPower;
                 totalReduction += reduction;
             }
@@ -155,7 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return { expectedGrid: tempGrid, expectedReduction: totalReduction };
     };
     
-    // ▼▼▼ 改善点: 戦略的スコアリングを導入した新しい評価ロジック ▼▼▼
     const findBestAction = () => {
         let bestAction = { score: Infinity };
         const totalValue = state.gridValues.reduce((sum, val) => sum + (val > 0 ? val : 0), 0);
@@ -170,51 +165,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 const { expectedGrid, expectedReduction } = calculateExpectedOutcome(skillKey, target.indices);
                 if (expectedGrid === null) continue;
 
-                // --- スコアリング開始 (スコアが低いほど良い手) ---
                 let score = 0;
 
-                // 1. 基本スコア: 残り数値の絶対値の合計
                 score += expectedGrid.reduce((sum, val) => sum + Math.abs(val), 0);
-                
-                // 2. オーバーシュートペナルティ: 0を通り越してマイナスになった分だけペナルティ
                 score += expectedGrid.reduce((sum, val) => sum + (val < 0 ? Math.abs(val) * 10 : 0), 0);
 
-                // 3. 集中力効率ペナルティ: 効率が悪い手は避ける
                 if (skill.cost > 0) {
                     const efficiency = expectedReduction / skill.cost;
-                    if (efficiency < 1.5) score += 10; // 効率が1.5未満ならペナルティ
-                    if (efficiency < 1.0) score += 10; // 効率が1.0未満ならさらにペナルティ
+                    if (efficiency < 1.5) score += 10;
+                    if (efficiency < 1.0) score += 10;
                 }
+                
+                // ▼▼▼ 新規追加: 弱い布での範囲攻撃にペナルティ ▼▼▼
+                if (state.clothCondition === 'weak') {
+                    const isRangeAttack = ['yoko', 'taki', 'tasuki', 'gyaku-tasuki', 'suihei', 'otaki'].includes(skill.key);
+                    if (isRangeAttack) {
+                        score += 30; // 弱い布で範囲攻撃をするのは悪手なので、大きなペナルティ
+                    }
+                }
+                // ▲▲▲ 新規追加ここまで ▲▲▲
 
-                // 4. 戦略的ボーナスとペナルティ
                 switch (skill.key) {
                     case 'nerai':
                         const targetValue = state.gridValues[target.indices[0]];
-                        // 仕上げ圏内(15-40)でなければ大きなペナルティ
                         if (targetValue < 15 || targetValue > 40) score += 50;
-                        // 布が「弱い」時の使用はリスクが高いのでペナルティ
                         if (state.clothCondition === 'weak') score += 40;
-                        // 集中力が潤沢な序盤での使用にペナルティ
                         if (state.currentConcentration > state.maxConcentration * 0.6) score += 20;
                         break;
-
                     case 'triple':
-                        // 威力が過剰な場合はペナルティ
                         if (state.gridValues[target.indices[0]] < 45) score += 30;
                         break;
-                    
                     case 'kagen':
-                        // 誤差調整に有効な場面でボーナス
                         if (state.gridValues[target.indices[0]] < 15) score -= 5;
                         break;
-
-                    case 'yoko':
-                    case 'taki':
-                    case 'tasuki':
-                    case 'gyaku-tasuki':
-                    case 'suihei':
-                    case 'otaki':
-                        // 盤面の合計値が大きい序盤で範囲攻撃にボーナス
+                    case 'yoko': case 'taki': case 'tasuki': case 'gyaku-tasuki': case 'suihei': case 'otaki':
                         if (totalValue > 300) score -= 15;
                         break;
                 }
@@ -234,7 +218,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const getTargetsForSkill = (skillKey) => {
         const targets = [];
-        // 既に縫い終わったマスは対象外にする
         const isTargetable = (index) => state.gridValues[index] > 0;
 
         if (['kagen', 'normal', 'double', 'triple', 'nerai'].includes(skillKey)) {
@@ -261,7 +244,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const noticeEl = document.getElementById('regeneration-notice');
         if (turn > 0 && turn % 4 === 0) {
             let maxVal = -1, targetIndex = -1;
-            // 5以上という条件を追加
             state.gridValues.forEach((val, i) => { if (val >= 5 && val > maxVal) { maxVal = val; targetIndex = i; } });
             if (targetIndex !== -1) noticeEl.textContent = `再生ターン！ ${CELL_NAMES[targetIndex]} が12～16回復します。`;
             else noticeEl.textContent = '再生ターンですが、回復対象のマスがありません。';
