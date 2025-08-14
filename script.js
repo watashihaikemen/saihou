@@ -2,7 +2,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- データ定義 ---
     const CONCENTRATION_LEVELS = [0, 50, 51, 54, 55, 58, 61, 62, 65, 68, 68, 71, 74, 74, 77, 79, 82, 82, 85, 88, 88, 91, 94, 94, 97, 100, 100, 103, 105, 108, 108, 111, 112, 112, 114, 118, 121, 122, 122, 124, 128, 131, 133, 136, 138, 138, 141, 141, 143, 146, 148, 151, 151, 153, 156, 158, 161, 161, 163, 166, 168, 170, 170, 172, 174, 176, 179, 181, 183, 185, 187, 188, 190, 192, 194, 196, 196, 196, 196, 196, 196];
     const NEEDLE_DATA = { copper: { conc: 0, crit: [0.010, 0.011, 0.012, 0.020] }, iron: { conc: 10, crit: [0.015, 0.016, 0.017, 0.025] }, silver: { conc: 15, crit: [0.020, 0.021, 0.022, 0.030] }, platinum: { conc: 25, crit: [0.025, 0.026, 0.027, 0.035] }, super: { conc: 35, crit: [0.030, 0.031, 0.032, 0.040] }, miracle: { conc: 50, crit: [0.033, 0.034, 0.035, 0.043] }, light: { conc: 45, crit: [0.036, 0.037, 0.038, 0.046] } };
-    const SKILLS = { 'kagen': { key: 'kagen', name: 'かげんぬい', cost: 10, level: 3 }, 'normal': { key: 'normal', name: '普通に縫う', cost: 5, level: 1 }, 'double': { key: 'double', name: '2倍ぬい', cost: 9, level: 13 }, 'triple': { key: 'triple', name: '3倍縫い', cost: 12, level: 33 }, 'nerai': { key: 'nerai', name: 'ねらいぬい', cost: 16, level: 23 }, 'yoko': { key: 'yoko', name: 'ヨコぬい', cost: 8, level: 2 }, 'taki': { key: 'taki', name: '滝のぼり', cost: 8, level: 5 }, 'tasuki': { key: 'tasuki', name: 'たすきぬい', cost: 7, level: 7 }, 'gyaku-tasuki': { key: 'gyaku-tasuki', name: '逆たすきぬい', cost: 7, level: 25 }, 'suihei': { key: 'suihei', name: '水平ぬい', cost: 10, level: 15 }, 'otaki': { key: 'otaki', name: '大滝のぼり', cost: 10, level: 19 }, };
+    
+    // ▼▼▼ 改善点1: 「精神統一」を特技リストに追加 ▼▼▼
+    const SKILLS = { 'seishin': { key: 'seishin', name: '精神統一', cost: 0, level: 35 }, 'kagen': { key: 'kagen', name: 'かげんぬい', cost: 10, level: 3 }, 'normal': { key: 'normal', name: '普通に縫う', cost: 5, level: 1 }, 'double': { key: 'double', name: '2倍ぬい', cost: 9, level: 13 }, 'triple': { key: 'triple', name: '3倍縫い', cost: 12, level: 33 }, 'nerai': { key: 'nerai', name: 'ねらいぬい', cost: 16, level: 23 }, 'yoko': { key: 'yoko', name: 'ヨコぬい', cost: 8, level: 2 }, 'taki': { key: 'taki', name: '滝のぼり', cost: 8, level: 5 }, 'tasuki': { key: 'tasuki', name: 'たすきぬい', cost: 7, level: 7 }, 'gyaku-tasuki': { key: 'gyaku-tasuki', name: '逆たすきぬい', cost: 7, level: 25 }, 'suihei': { key: 'suihei', name: '水平ぬい', cost: 10, level: 15 }, 'otaki': { key: 'otaki', name: '大滝のぼり', cost: 10, level: 19 }, };
+    
     const SEWING_VALUES = { normal: { kagen: 7.5, normal: 15 }, weak: { kagen: 3.5, normal: 7 }, strong: { kagen: 11, normal: 22 }, strongest: { kagen: 15, normal: 30 } };
     const INITIAL_GRID = [95, 40, 95, 60, 60, 60, 75, 40, 75];
     const CELL_NAMES = ["上段左", "上段中", "上段右", "中段左", "中段中", "中段右", "下段左", "下段中", "下段右"];
@@ -100,10 +103,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const bestAction = findBestAction();
         const suggestionText = document.getElementById('suggestion-text');
         
-        if (bestAction.score === Infinity) {
+        if (!bestAction || bestAction.score === Infinity) {
             suggestionText.innerHTML = "集中力が足りないか、有効な手がありません。仕上げを検討してください。";
         } else {
-             suggestionText.innerHTML = `<strong>${bestAction.skillName}</strong> を <strong>${bestAction.targetName}</strong> に使うのがおすすめです。<br>(集中力消費: ${bestAction.cost})`;
+            let suggestionHTML = `<strong>${bestAction.skillName}</strong> をおすすめします。`;
+            if (bestAction.targetName) {
+                 suggestionHTML = `<strong>${bestAction.skillName}</strong> を <strong>${bestAction.targetName}</strong> に使うのがおすすめです。`;
+            }
+            if (bestAction.skillKey === 'seishin') {
+                suggestionHTML += `<br>(集中力が40回復します)`;
+            } else {
+                suggestionHTML += `<br>(集中力消費: ${bestAction.cost})`;
+            }
+            suggestionText.innerHTML = suggestionHTML;
         }
         updateRegenerationNotice();
     };
@@ -151,13 +163,28 @@ document.addEventListener('DOMContentLoaded', () => {
         return { expectedGrid: tempGrid, expectedReduction: totalReduction };
     };
     
-    // ▼▼▼ 改善点: 評価ロジックを抜本的に見直し ▼▼▼
+    // ▼▼▼ 改善点2: 評価ロジックを抜本的に見直し ▼▼▼
     const findBestAction = () => {
         let bestAction = { score: Infinity };
         const totalValue = state.gridValues.reduce((sum, val) => sum + (val > 0 ? val : 0), 0);
 
+        // --- 戦略的判断: 精神統一の評価 ---
+        const seishinSkill = SKILLS.seishin;
+        if (state.level >= seishinSkill.level) {
+            // 状況1: 「最強」布地で、集中力が満タンでない場合。絶好の回復チャンス。
+            if (state.clothCondition === 'strongest' && state.currentConcentration <= state.maxConcentration - 40) {
+                 return { score: -9999, skillKey: 'seishin', skillName: seishinSkill.name, targetName: null, cost: seishinSkill.cost };
+            }
+            // 状況2: 集中力が危険水域(30未満)で、すぐに終わらない場合。
+            if (state.currentConcentration < 30 && totalValue > 50) {
+                return { score: -9000, skillKey: 'seishin', skillName: seishinSkill.name, targetName: null, cost: seishinSkill.cost };
+            }
+        }
+
+        // --- 各縫いアクションの評価ループ ---
         for (const skillKey in SKILLS) {
             const skill = SKILLS[skillKey];
+            if (skill.key === 'seishin') continue; // 精神統一は上で評価済み
             if (state.level < skill.level || state.currentConcentration < skill.cost) continue;
 
             const targets = getTargetsForSkill(skillKey);
@@ -167,49 +194,62 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (expectedGrid === null) continue;
 
                 let score = 0;
+                const remainingValue = expectedGrid.reduce((sum, val) => sum + Math.max(0, val), 0);
+                const overshootValue = expectedGrid.reduce((sum, val) => sum + (val < 0 ? Math.abs(val) : 0), 0);
+                
+                // 1. 基本スコア: 残り数値をどれだけ0に近づけられたか
+                score += remainingValue;
 
-                // 1. 基本スコア（盤面の残数値の合計）
-                score += expectedGrid.reduce((sum, val) => sum + Math.abs(val), 0);
-                
-                // 2. オーバーシュートペナルティ
-                score += expectedGrid.reduce((sum, val) => sum + (val < 0 ? Math.abs(val) * 10 : 0), 0);
-                
+                // 2. オーバーシュートペナルティ: 致命的なので非常に重くする
+                score += overshootValue * 20;
+
                 // 3. 集中力効率ペナルティ
                 if (skill.cost > 0) {
                     const efficiency = expectedReduction / skill.cost;
-                    if (efficiency < 1.5) score += 10;
-                }
-                
-                // 4. 【最重要】状況に応じた戦略的判断
-                // 「弱い」布の時は、消費集中力の大きい特技は原則NGとする
-                if (state.clothCondition === 'weak' && skill.cost >= 8) {
-                    score += 100; // 極めて大きなペナルティを課し、選択肢から除外する
+                    if (efficiency < 2.0) score += (2.0 - efficiency) * 15; // 効率が悪いほどペナルティ
+                } else if (expectedReduction === 0) {
+                    score += 100; // 消費0で何も進まない手は無意味
                 }
 
-                // 「強い」「最強」の時は、積極的に高倍率特技を狙うボーナス
-                if (state.clothCondition === 'strong' || state.clothCondition === 'strongest') {
+                // 4. 【重要】状況に応じた戦略的ボーナス・ペナルティ
+                // [布の状態]
+                if (state.clothCondition === 'weak') {
+                    if (overshootValue > 0) score += 500; //「弱い」でのオーバーは最悪手
+                    if (skill.cost > 8) score += 150;     // 高コスト技は厳禁
+                    if (skill.key === 'kagen') score -= 30; // かげんぬいを強く推奨
+                } else if (state.clothCondition === 'strong' || state.clothCondition === 'strongest') {
                     if (skill.key === 'triple' || skill.key === 'double') {
-                        score -= 10; // ボーナス
+                        score -= 35; // 高倍率技を強く推奨
                     }
                 }
 
-                // 5. 個別特技の評価
-                // ねらいぬいは、仕上げに近い状況以外では評価を下げる
+                // [特技ごとの評価]
                 if (skill.key === 'nerai') {
                     const targetValue = state.gridValues[target.indices[0]];
-                    if (targetValue < 15 || targetValue > 40) score += 50;
-                    if (state.currentConcentration > state.maxConcentration * 0.6) score += 20;
+                    // 仕上げ圏内(基準値の1～2倍)での評価を上げる
+                    const sewPower = SEWING_VALUES['normal'].normal;
+                    if (targetValue >= sewPower && targetValue <= sewPower * 2.5) {
+                         score -= 40;
+                    } else {
+                         score += 60; // それ以外では評価を下げる
+                    }
+                    if(state.currentConcentration < skill.cost + 20) score += 30; // 集中力に余裕がない時はリスク
                 }
-                
-                // 序盤の範囲攻撃ボーナス（ただし「弱い」布の時を除く）
-                const isRangeAttack = ['yoko', 'taki', 'tasuki', 'gyaku-tasuki', 'suihei', 'otaki'].includes(skill.key);
-                if (isRangeAttack && totalValue > 300 && state.clothCondition !== 'weak') {
-                    score -= 15;
+
+                // [ゲーム進行度による評価]
+                if (totalValue > 350 && state.clothCondition !== 'weak') { // 序盤
+                    if (['suihei', 'otaki'].includes(skill.key)) score -= 30; // 3マス範囲技を推奨
+                    else if (['yoko', 'taki', 'tasuki', 'gyaku-tasuki'].includes(skill.key)) score -= 25; // 2マス範囲技を推奨
+                } else if (totalValue < 90) { // 終盤
+                    if (['yoko', 'taki', 'tasuki', 'gyaku-tasuki', 'suihei', 'otaki'].includes(skill.key)) {
+                       score += 100; // 終盤の範囲攻撃は事故の元
+                    }
                 }
 
                 if (score < bestAction.score) {
                     bestAction = {
                         score: score,
+                        skillKey: skillKey,
                         skillName: skill.name,
                         targetName: target.name,
                         cost: skill.cost,
