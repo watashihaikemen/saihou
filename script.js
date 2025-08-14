@@ -151,6 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return { expectedGrid: tempGrid, expectedReduction: totalReduction };
     };
     
+    // ▼▼▼ 改善点: 評価ロジックを抜本的に見直し ▼▼▼
     const findBestAction = () => {
         let bestAction = { score: Infinity };
         const totalValue = state.gridValues.reduce((sum, val) => sum + (val > 0 ? val : 0), 0);
@@ -167,47 +168,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 let score = 0;
 
+                // 1. 基本スコア（盤面の残数値の合計）
                 score += expectedGrid.reduce((sum, val) => sum + Math.abs(val), 0);
+                
+                // 2. オーバーシュートペナルティ
                 score += expectedGrid.reduce((sum, val) => sum + (val < 0 ? Math.abs(val) * 10 : 0), 0);
-
+                
+                // 3. 集中力効率ペナルティ
                 if (skill.cost > 0) {
                     const efficiency = expectedReduction / skill.cost;
                     if (efficiency < 1.5) score += 10;
-                    if (efficiency < 1.0) score += 10;
                 }
                 
-                if (state.clothCondition === 'weak') {
-                    const isRangeAttack = ['yoko', 'taki', 'tasuki', 'gyaku-tasuki', 'suihei', 'otaki'].includes(skill.key);
-                    if (isRangeAttack) {
-                        score += 30; 
+                // 4. 【最重要】状況に応じた戦略的判断
+                // 「弱い」布の時は、消費集中力の大きい特技は原則NGとする
+                if (state.clothCondition === 'weak' && skill.cost >= 8) {
+                    score += 100; // 極めて大きなペナルティを課し、選択肢から除外する
+                }
+
+                // 「強い」「最強」の時は、積極的に高倍率特技を狙うボーナス
+                if (state.clothCondition === 'strong' || state.clothCondition === 'strongest') {
+                    if (skill.key === 'triple' || skill.key === 'double') {
+                        score -= 10; // ボーナス
                     }
                 }
 
-                // ▼▼▼ 改善点: 「弱い布」での高倍率特技に、さらに大きなペナルティを追加 ▼▼▼
-                switch (skill.key) {
-                    case 'nerai':
-                        const targetValue = state.gridValues[target.indices[0]];
-                        if (targetValue < 15 || targetValue > 40) score += 50;
-                        if (state.clothCondition === 'weak') score += 40;
-                        if (state.currentConcentration > state.maxConcentration * 0.6) score += 20;
-                        break;
-                    case 'double': // 2倍ぬいも評価対象に
-                    case 'triple':
-                        // 「弱い」布で使うのは最悪手なので、極めて大きなペナルティ
-                        if (state.clothCondition === 'weak') {
-                            score += 50;
-                        }
-                        // 威力が過剰な場合もペナルティ
-                        if (state.gridValues[target.indices[0]] < (skill.key === 'triple' ? 45 : 30)) {
-                             score += 20;
-                        }
-                        break;
-                    case 'kagen':
-                        if (state.gridValues[target.indices[0]] < 15) score -= 5;
-                        break;
-                    case 'yoko': case 'taki': case 'tasuki': case 'gyaku-tasuki': case 'suihei': case 'otaki':
-                        if (totalValue > 300) score -= 15;
-                        break;
+                // 5. 個別特技の評価
+                // ねらいぬいは、仕上げに近い状況以外では評価を下げる
+                if (skill.key === 'nerai') {
+                    const targetValue = state.gridValues[target.indices[0]];
+                    if (targetValue < 15 || targetValue > 40) score += 50;
+                    if (state.currentConcentration > state.maxConcentration * 0.6) score += 20;
+                }
+                
+                // 序盤の範囲攻撃ボーナス（ただし「弱い」布の時を除く）
+                const isRangeAttack = ['yoko', 'taki', 'tasuki', 'gyaku-tasuki', 'suihei', 'otaki'].includes(skill.key);
+                if (isRangeAttack && totalValue > 300 && state.clothCondition !== 'weak') {
+                    score -= 15;
                 }
 
                 if (score < bestAction.score) {
